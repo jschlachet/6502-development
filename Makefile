@@ -8,7 +8,7 @@ CA65_FLAGS=--cpu 65C02
 LD65_FLAGS=-C $(FIRMWARE_CFG)
 MINIPRO_FLAGS=-p AT28C256
 
-TARGET=dual-hello
+TARGET=dual-hello-cc65
 
 default: $(TARGET).bin
 
@@ -22,4 +22,3 @@ clean:
 
 burn:
 	$(MINIPRO_BINARY) $(MINIPRO_FLAGS) -w $(TARGET).bin
-

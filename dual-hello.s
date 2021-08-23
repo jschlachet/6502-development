@@ -10,7 +10,7 @@ RW = %01000000
 RS = %00100000
 
 
-  .org $8000
+  .code
 
 
 reset:
@@ -181,7 +181,7 @@ nmi:
 irq:
   jmp irq
 
-  .org $fffa
+  .segment "VECTORS"
   .word nmi
   .word reset
   .word irq

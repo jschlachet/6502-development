@@ -1,9 +1,9 @@
 
 ;
-ZP_VIA_PORTB = $40
-ZP_VIA_PORTA = $42
-ZP_VIA_DDRB  = $44
-ZP_VIA_DDRA  = $46
+ZP_VIA_PORTB = $00
+ZP_VIA_PORTA = $02
+ZP_VIA_DDRB  = $04
+ZP_VIA_DDRA  = $06
 
 E  = %10000000
 RW = %01000000
@@ -74,24 +74,24 @@ set_via1:
   pha
 
   lda #$00   ; $80 - via_portb == $6000
-  sta $40
+  sta $00
   lda #$60
-  sta $41
+  sta $01
 
   lda #$01   ; $82 - via_porta == $6001
-  sta $42
+  sta $02
   lda #$60
-  sta $43
+  sta $03
 
   lda #$02   ; $84 - via_ddrb == $6002
-  sta $44
+  sta $04
   lda #$60
-  sta $45
+  sta $05
 
   lda #$03   ; $86 - via_ddra == $6003
-  sta $46
+  sta $06
   lda #$60
-  sta $47
+  sta $07
 
   pla
   rts
@@ -103,24 +103,24 @@ set_via2:
   pha
 
   lda #$00   ; $40 - via_portb == $4000
-  sta $40
+  sta $00
   lda #$40
-  sta $41
+  sta $01
 
   lda #$01   ; $42 - via_porta == $4001
-  sta $42
+  sta $02
   lda #$40
-  sta $43
+  sta $03
 
   lda #$02   ; $44 - via_ddrb == $4002
-  sta $44
+  sta $04
   lda #$40
-  sta $45
+  sta $05
 
   lda #$03   ; $46 - via_ddra == $4003
-  sta $46
+  sta $06
   lda #$40
-  sta $47
+  sta $07
 
   pla
   rts

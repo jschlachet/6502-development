@@ -1,17 +1,29 @@
-
+; zero page pointers to hold addresses for the target via device.
 ;
 ZP_VIA_PORTB = $00
 ZP_VIA_PORTA = $02
 ZP_VIA_DDRB  = $04
 ZP_VIA_DDRA  = $06
 
+VIA1 = $4000
+VIA2 = $6000
+
+VIA1_PORTB = VIA1
+VIA1_PORTA = VIA1+1
+VIA1_DDRB  = VIA1+2
+VIA1_DDRA  = VIA1+3
+
+VIA2_PORTB = VIA2
+VIA2_PORTA = VIA2+1
+VIA2_DDRB  = VIA2+2
+VIA2_DDRA  = VIA2+3
+
+
 E  = %10000000
 RW = %01000000
 RS = %00100000
 
-
-  .code
-
+  .code ; .org $8000
 
 reset:
   ldx #$ff
@@ -48,8 +60,8 @@ print_2:
 loop:
   jmp loop
 
-message: .asciiz "LCD Test 3"
-message_2: .asciiz "LCD Test 2"
+message: .asciiz "LCD Test 2"
+message_2: .asciiz "LCD Test 1"
 
 
 lcd_init:
@@ -73,24 +85,24 @@ lcd_init:
 set_via1:
   pha
 
-  lda #$00   ; $80 - via_portb == $6000
+  lda #<VIA1_PORTB ; via_portb
   sta $00
-  lda #$60
+  lda #>VIA1_PORTB
   sta $01
 
-  lda #$01   ; $82 - via_porta == $6001
+  lda #<VIA1_PORTA ; via_porta
   sta $02
-  lda #$60
+  lda #>VIA1_PORTA
   sta $03
 
-  lda #$02   ; $84 - via_ddrb == $6002
+  lda #<VIA1_DDRB ; via_ddrb
   sta $04
-  lda #$60
+  lda #>VIA1_DDRB
   sta $05
 
-  lda #$03   ; $86 - via_ddra == $6003
+  lda #<VIA1_DDRA ; via_ddra
   sta $06
-  lda #$60
+  lda #>VIA1_DDRA
   sta $07
 
   pla
@@ -102,24 +114,24 @@ set_via1:
 set_via2:
   pha
 
-  lda #$00   ; $40 - via_portb == $4000
+  lda #<VIA2_PORTB ; via_portb
   sta $00
-  lda #$40
+  lda #>VIA2_PORTB
   sta $01
 
-  lda #$01   ; $42 - via_porta == $4001
+  lda #<VIA2_PORTA ; via_porta
   sta $02
-  lda #$40
+  lda #>VIA2_PORTA
   sta $03
 
-  lda #$02   ; $44 - via_ddrb == $4002
+  lda #<VIA2_DDRB ; via_ddrb
   sta $04
-  lda #$40
+  lda #>VIA2_DDRB
   sta $05
 
-  lda #$03   ; $46 - via_ddra == $4003
+  lda #<VIA2_DDRA ; via_ddra
   sta $06
-  lda #$40
+  lda #>VIA2_DDRA
   sta $07
 
   pla
@@ -181,7 +193,7 @@ nmi:
 irq:
   jmp irq
 
-  .segment "VECTORS"
+  .segment "VECTORS" ; .org $fffa
   .word nmi
   .word reset
   .word irq

@@ -1,24 +1,14 @@
-CA65_BINARY=ca65
-LD65_BINARY=ld65
-MINIPRO_BINARY=minipro
+# top level makefile
+#
+#
 
-FIRMWARE_CFG=beneater.cfg
+SUBDIRS = rom
 
-CA65_FLAGS=--cpu 65C02
-LD65_FLAGS=-C $(FIRMWARE_CFG)
-MINIPRO_FLAGS=-p AT28C256
+.PHONY: subdirs $(SUBDIRS)
 
-TARGET=dual-hello
+subdirs: $(SUBDIRS)
 
-default: $(TARGET).bin
-
-%.bin: %.o
-	$(LD65_BINARY) $(LD65_FLAGS) -o $@ $<
-%.o: %.s
-	$(CA65_BINARY) $(CA65_FLAGS) -o $@ $<
-
+$(SUBDIRS):
+	$(MAKE) -C $@
 clean:
-	/bin/rm -f *.o *.bin
-
-burn:
-	$(MINIPRO_BINARY) $(MINIPRO_FLAGS) -w $(TARGET).bin
+	(cd rom; make clean)

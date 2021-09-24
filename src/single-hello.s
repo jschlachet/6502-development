@@ -1,3 +1,5 @@
+# this should run on stock BE6502
+
 PORTB = $6000
 PORTA = $6001
 DDRB = $6002

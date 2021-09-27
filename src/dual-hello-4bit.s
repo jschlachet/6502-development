@@ -45,7 +45,7 @@ reset:
   LDA $00
   STA (ZP_VIA_PORTA,x)
 
-  ; right display ; BEN EATER CONNECTIONS
+  ; right display
   ; jsr set_via1          ; (6)
   ; jsr lcd_init          ; (6)
 
@@ -58,10 +58,10 @@ reset:
   JSR delay_25ms
   JSR delay_25ms
  
-  JSR print
+  JMP print_hello
   
 
-print:
+print_hello:
   jsr set_via2
   ldy #0
 print_loop:
@@ -76,15 +76,6 @@ loop:
 
 message_2: .asciiz "LCD 4bit mode!"
 
-;               <-----------PORT-B------------> <--PORT-A->
-; Net:  POT VCC PB7 PB6 PB5 PB4 PB3 PB2 PB1 PB0 PA7 PA6 PA5 POT VCC GND
-; Pin :  16  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1
-; Func:   K   A  D7  D6  D5  D4  D3  D2  D1  D0   E  RW  RS  VE VDD GND
-;               <----4bit----->                 <--------->
-
-
-; 1 clock = 1000ms
-; 15ms
 lcd_init:
   PHA                   ; 
   LDX #0                ; will be using X=0 repeatedly
@@ -127,37 +118,37 @@ lcd_init:
 
   ; 6. function set - Write set interface length
   LDA #$02              ; 001 (Function Set_, DL=0 (4-bit)
-  JSR lcd_instruction_nowait
-  LDA #$08              ; N=1 (2 lines), F=0 (5x8 font), X, X
   JSR lcd_instruction
+  LDA #$08              ; N=1 (2 lines), F=0 (5x8 font), X, X
+  JSR lcd_instruction_nowait
 
   ; 7. Write 0x01/0x00 to turn off the Display
   LDA #$00
-  JSR lcd_instruction_nowait
-  LDA #$08
   JSR lcd_instruction
+  LDA #$08
+  JSR lcd_instruction_nowait
 
   ; 8. Write 0x00/0x01 to clear the Display;
   LDA #$00
-  JSR lcd_instruction_nowait
-  LDA #$01
   JSR lcd_instruction
+  LDA #$01
+  JSR lcd_instruction_nowait
   JSR lcd_wait
 
   ; 9. Write Set Cursor Move Direction setting cursor behavior bits
   LDA #$00
-  JSR lcd_instruction_nowait
-  LDA #$06
   JSR lcd_instruction
+  LDA #$06
+  JSR lcd_instruction_nowait
 
   ; 10. lcd initialization is now complete
   ; lcd is busy for a while here
 
   ; 11. Write Enable Display/Cursor to enable display and optional cursor
   LDA #$00
-  JSR lcd_instruction_nowait
-  LDA #$0e
   JSR lcd_instruction
+  LDA #$0e
+  JSR lcd_instruction_nowait
 
   PLA
   RTS
@@ -167,18 +158,13 @@ lcd_init:
 ; A and Y are high and low bytes of a 16 bit value.
 ; cycle count == multiply 16bit value by 9, then add 8.
 ; Ref: http://forum.6502.org/viewtopic.php?f=12&t=5271&start=0#p62581
-; at 1MHz, 1ms is
-; 1,000 cycles = 00000000 1101111 ($00 $6f; 44 dec) --> (9*111)+8 == 1007
 ; 15ms = (9*1666)+8 --> 00000110 10000010 $06 $82
-; 5ms = (9*555)+8   -->       10 00101011 $02 $2b
-; 160usec = (9*17)+8 -->       0 00010001 $00 $11
-; 100ms =  (9*11111)+8 --> $0b $67              
+;
 delay_ay:
-delay_ay_loop:
   CPY #1                ; (2)
   DEY                   ; (2)
   SBC #0                ; (2)
-  BCS delay_ay_loop     ; (3)
+  BCS delay_ay          ; (3)
   RTS
 
 delay_5ms:
@@ -224,22 +210,22 @@ delay_25ms:
 set_via1:
   pha
 
-  lda #<VIA1_PORTB ; via_portb
+  lda #<VIA1_PORTB      ; via_portb
   sta $00
   lda #>VIA1_PORTB
   sta $01
 
-  lda #<VIA1_PORTA ; via_porta
+  lda #<VIA1_PORTA      ; via_porta
   sta $02
   lda #>VIA1_PORTA
   sta $03
 
-  lda #<VIA1_DDRB ; via_ddrb
+  lda #<VIA1_DDRB       ; via_ddrb
   sta $04
   lda #>VIA1_DDRB
   sta $05
 
-  lda #<VIA1_DDRA ; via_ddra
+  lda #<VIA1_DDRA       ; via_ddra
   sta $06
   lda #>VIA1_DDRA
   sta $07
@@ -253,22 +239,22 @@ set_via1:
 set_via2:
   pha
 
-  lda #<VIA2_PORTB ; via_portb
+  lda #<VIA2_PORTB      ; via_portb
   sta $00
   lda #>VIA2_PORTB
   sta $01
 
-  lda #<VIA2_PORTA ; via_porta
+  lda #<VIA2_PORTA      ; via_porta
   sta $02
   lda #>VIA2_PORTA
   sta $03
 
-  lda #<VIA2_DDRB ; via_ddrb
+  lda #<VIA2_DDRB       ; via_ddrb
   sta $04
   lda #>VIA2_DDRB
   sta $05
 
-  lda #<VIA2_DDRA ; via_ddra
+  lda #<VIA2_DDRA       ; via_ddra
   sta $06
   lda #>VIA2_DDRA
   sta $07
@@ -276,23 +262,11 @@ set_via2:
   pla
   rts
 
-;
-;
-
-
-; When RS = 0 and R/W = 1 (Table 1), the busy flag is output to DB7.
-;  7  6  5  4  3  2  1  0  <------------ PORT A pin
-; xx RS RW #E D7 D6 D5 D4 D3 D2 D1 D0
-; xx  0  1 ?? BF AC AC AC AC AC AC AC (busy flag, address counter)
-;
-;       RW            = %00100000
-
 
 ; for now we're just going to clobber 7. we should read, 
 ; change the bits we need to modify, and then store.  
 lcd_wait:
   PHA
-  ; read DDRA and set control pins to read
   LDX #0
   LDA #%01110000  ; control lines output, data lines input
   STA (ZP_VIA_DDRA,x)
@@ -317,12 +291,10 @@ lcd_busy:
   AND #%00001000
   BNE lcd_busy
 
-  ; AND #CLEAR_E_RW_RS
-  ; STA (ZP_VIA_PORTA,x)
-  LDA #%01111111        ; control and data all output
+  LDA #%01111111        ; reset control and data lines to output
   STA (ZP_VIA_DDRA,x)
 
-  LDA #0
+  LDA #0                ; reset state of port a
   STA (ZP_VIA_PORTA,x)
 
   PLA
@@ -331,15 +303,11 @@ lcd_busy:
 
 
 lcd_instruction:
-  JSR lcd_instruction_nowait
   JSR lcd_wait
+  JSR lcd_instruction_nowait
   RTS
 
 lcd_instruction_nowait:
-  ;LDX #0
-  ;LDA (ZP_VIA_PORTA,x)  ; send data to port a (should only be using lower 4 bits)
-  ; following operations cannot alter lower nibble where data is
-  ;AND #%10001111        ; Clear control lines
   STA (ZP_VIA_PORTA,x)
   ORA #E                ; set E bit
   STA (ZP_VIA_PORTA,x)
@@ -349,6 +317,8 @@ lcd_instruction_nowait:
 
 
 print_char:
+  JSR lcd_wait
+
   ; a contrains character to print
   LDX #0                ; needed for indirect addressing
   
@@ -376,10 +346,7 @@ print_char:
   AND #CLEAR_E_RW_RS          ; clear E
   STA (ZP_VIA_PORTA,x)
 
-  JSR lcd_wait
-
   RTS
-
 
 nmi:
 irq:

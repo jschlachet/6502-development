@@ -17,7 +17,7 @@ BUILD_DIR=../build
 INCLUDE_DIR=../include
 ROM_DIR=.
 
-all: 6522-timers dualvia-serial dual-hello-4wire
+all: 6522-timers dualvia-serial dual-hello-4bit
 
 $(ROM_DIR)/%: $(BUILD_DIR)/%.o
 	$(LD65_BINARY) $(LD65_FLAGS) -o $(ROM_DIR)/$@ $<

@@ -15,14 +15,19 @@ MINIPRO_FLAGS=-p AT28C256
 SOURCE_DIR=../src
 BUILD_DIR=../build
 INCLUDE_DIR=../include
+CONFIG_DIR=../config
 ROM_DIR=.
 
 all: 6522-timers dualvia-serial dual-hello-4bit
 
 $(ROM_DIR)/%: $(BUILD_DIR)/%.o
-	$(LD65_BINARY) $(LD65_FLAGS) -o $(ROM_DIR)/$@ $<
+	$(LD65_BINARY) $(LD65_FLAGS) \
+		-o $(ROM_DIR)/$@ $<
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.s
-	$(CA65_BINARY) $(CA65_FLAGS) --include-dir $(INCLUDE_DIR) -o $(BUILD_DIR)/$@ $<
+	$(CA65_BINARY) $(CA65_FLAGS) \
+		--include-dir $(INCLUDE_DIR) \
+		--include-dir $(CONFIG_DIR) \
+		-o $(BUILD_DIR)/$@ $<
 clean:
 	/bin/rm -f $(BUILD_DIR)/*.o && \
 	/usr/bin/find $(ROM_DIR) -type f ! -name Makefile ! -name README.md -delete && \

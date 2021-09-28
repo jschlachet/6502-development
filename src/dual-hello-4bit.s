@@ -7,7 +7,8 @@
 ; zero page pointers to hold addresses for the target via device.
 ;
 
-  .include "globals.s"
+  .include "via.cfg"
+  .include "lcd-4bit.cfg"
 
   .code ; .org $8000
 

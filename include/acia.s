@@ -122,17 +122,22 @@ key_escape:             ; $f0
   JMP irq_reset_end
 
 key_backspace:          ; $7f
-  LDA #%00010000        ; move cursor left
+  LDA #%0001            ; move cursor left
   JSR lcd_instruction
+  LDA #%0000
+  JSR lcd_instruction_nowait
   LDA #$20              ; print space
   JSR print_char
-  LDA #%00010000        ; move cursor left
+  LDA #%0001
   JSR lcd_instruction
+  LDA #%0000        ; move cursor left
+  JSR lcd_instruction_nowait
   LDA ACIA_WR_PTR       ; load write pointer
   DEC                   ; decrement by one
   STA ACIA_WR_PTR       ; save pointer back out
   JSR send_backspace_serial
   jmp irq_reset_end
+
 key_backtick:
   LDA #%00000001        ; Clear display
   JSR lcd_instruction

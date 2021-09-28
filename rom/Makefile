@@ -19,6 +19,7 @@ CONFIG_DIR=../config
 ROM_DIR=.
 
 all: 6522-timers dualvia-serial dual-hello-4bit
+dualvia-serial: $(INCLUDE_DIR)/acia.s $(INCLUDE_DIR)/lcd-4bit.s
 
 $(ROM_DIR)/%: $(BUILD_DIR)/%.o
 	$(LD65_BINARY) $(LD65_FLAGS) \

@@ -1,3 +1,8 @@
+;
+;
+;
+
+
 init_acia:
   PHA
   LDA #$00
@@ -25,7 +30,7 @@ send_message_next:
   INY
   jmp send_message_next
 send_message_done:
-  BIT ACIA_STATUS ; TRY TO CLEAR STATUS
+  BIT ACIA_STATUS       ; TRY TO CLEAR STATUS
   PLY
   PLA
   RTS
@@ -85,11 +90,9 @@ delay_done:
 ; Buffer Routines
 ;
 write_acia_buffer:      ; store char into buffer and increment pointer
-  PHX
   LDX ACIA_WR_PTR
   STA ACIA_BUFFER, x
   INC ACIA_WR_PTR
-  PLX
   RTS
 read_acia_buffer:       ; read char from buffer and move pointer
   LDX ACIA_RD_PTR
@@ -99,4 +102,92 @@ acia_buffer_diff:       ; subtract buffer pointers. if there's a difference then
   LDA ACIA_WR_PTR
   SEC
   SBC ACIA_RD_PTR
+  RTS
+
+
+perform_reset:
+  JMP reset
+
+key_escape:             ; $f0
+  LDA #%00000001        ; Clear display
+  JSR lcd_instruction
+  LDA ACIA_WR_PTR       ; load write pointer
+  STA ACIA_RD_PTR       ; store to read pointer (empty buffer)
+  LDA #$0d              ; ASCII CR
+  STA ACIA_DATA
+  JSR delay_6551
+  LDA #$0a              ; ASCII LF
+  STA ACIA_DATA
+  JSR delay_6551
+  JMP irq_reset_end
+
+key_backspace:          ; $7f
+  LDA #%00010000        ; move cursor left
+  JSR lcd_instruction
+  LDA #$20              ; print space
+  JSR print_char
+  LDA #%00010000        ; move cursor left
+  JSR lcd_instruction
+  LDA ACIA_WR_PTR       ; load write pointer
+  DEC                   ; decrement by one
+  STA ACIA_WR_PTR       ; save pointer back out
+  JSR send_backspace_serial
+  jmp irq_reset_end
+key_backtick:
+  LDA #%00000001        ; Clear display
+  JSR lcd_instruction
+  JSR print_buffer
+  JMP irq_reset_end
+
+send_backspace_serial:
+  LDA #$08              ; ASCII BS
+  STA ACIA_DATA
+  JSR delay_6551
+  LDA #$20              ; ASCII space
+  STA ACIA_DATA
+  JSR delay_6551
+  LDA #$08              ; ASCII BS
+  STA ACIA_DATA
+  JSR delay_6551
+  RTS
+
+print_buffer_contents:
+  PHA
+  PLA
+  RTS
+
+print_buffer:
+  PHA
+  PHX
+
+  JSR acia_buffer_diff
+  BEQ print_buffer_empty
+
+  JSR set_message_buffer
+  JSR send_message
+  ;
+read_acia_buffer_loop:
+  JSR read_acia_buffer        ; read char from buffer
+  STA ACIA_DATA              ; output to serial console
+  JSR delay_6551
+  ; move read pointers
+  INC ACIA_RD_PTR
+  ;
+  JSR acia_buffer_diff        ; check pointer different
+  BEQ read_acia_buffer_end    ; if buffer empty then exit
+  JSR read_acia_buffer_loop
+read_acia_buffer_end:
+  ;
+  JSR set_message_crlf
+  JSR send_message
+  JMP print_buffer_end
+  ;
+print_buffer_empty:
+  JSR set_message_empty
+  JSR send_message
+  JMP print_buffer_end
+  ;
+print_buffer_end:
+  PLX
+  PLA
   RTS

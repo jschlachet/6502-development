@@ -194,12 +194,14 @@ lcd_instruction_nowait:
 
 
 print_char:
+  PHX
+  PHA                   ; push two copies onto stack
+  PHA                   ; 
   JSR lcd_wait
 
   ; a contrains character to print
   LDX #0                ; needed for indirect addressing
   
-  PHA                   ; push a onto stack
   LSR a                 ; shift right 4 bits
   LSR a
   LSR a
@@ -213,6 +215,7 @@ print_char:
   STA (ZP_VIA_PORTA,x)
   
   PLA                   ; pull copy of A back from stack
+
   ;JSR lcd_wait
   ; PHA                   ; preserve a
   AND #$0f              ; clear upper nibble
@@ -223,5 +226,7 @@ print_char:
   AND #CLEAR_E_RW_RS          ; clear E
   STA (ZP_VIA_PORTA,x)
 
+  PLA                   ; restore a as we return
+  PLX
   RTS
 

@@ -104,12 +104,13 @@ acia_buffer_diff:       ; subtract buffer pointers. if there's a difference then
   SBC ACIA_RD_PTR
   RTS
 
-
 perform_reset:
   JMP reset
 
 key_escape:             ; $f0
-  LDA #%00000001        ; Clear display
+  LDA #$0               ; clear display $01
+  JSR lcd_instruction_nowait
+  LDA #$1
   JSR lcd_instruction
   LDA ACIA_WR_PTR       ; load write pointer
   STA ACIA_RD_PTR       ; store to read pointer (empty buffer)
@@ -122,24 +123,26 @@ key_escape:             ; $f0
   JMP irq_reset_end
 
 key_backspace:          ; $7f
-  LDA #%0001            ; move cursor left
-  JSR lcd_instruction
-  LDA #%0000
+  LDA #$1               ; cursor left $10 
   JSR lcd_instruction_nowait
+  LDA #$0
+  JSR lcd_instruction
   LDA #$20              ; print space
   JSR print_char
-  LDA #%0001
-  JSR lcd_instruction
-  LDA #%0000        ; move cursor left
+  LDA #$1               ; cursor left $10
   JSR lcd_instruction_nowait
+  LDA #$0
+  JSR lcd_instruction
   LDA ACIA_WR_PTR       ; load write pointer
   DEC                   ; decrement by one
   STA ACIA_WR_PTR       ; save pointer back out
   JSR send_backspace_serial
-  jmp irq_reset_end
+  JMP irq_reset_end
 
 key_backtick:
-  LDA #%00000001        ; Clear display
+  LDA #$0               ; clear display $01
+  JSR lcd_instruction_nowait
+  LDA #$1
   JSR lcd_instruction
   JSR print_buffer
   JMP irq_reset_end

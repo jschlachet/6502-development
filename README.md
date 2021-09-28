@@ -10,9 +10,16 @@ make
 
 ## Writing ROM
 ```bash
-cd rom
 make burn ROM=romfilename
 ```
+
+## Organization
+|dir|contents|
+|---|--------|
+|`config/`|memory map variables, global variables for module|
+|`include/`|collections of function based modules|
+|`rom/`|generated eeprom images|
+|`src/`|main source code|
 
 ## Prerequisites
 

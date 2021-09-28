@@ -4,8 +4,9 @@
 
 ZP_MESSAGE   = $08 ; message to send via serial
 
-  .include "globals.cfg"
   .include "acia.cfg"
+  .include "lcd-4bit.cfg"
+  .include "via.cfg"
 
 
 message_startup: .byte $0d, $0a, "Starting up.", $0d, $0a, $00 ; CR LF NULL

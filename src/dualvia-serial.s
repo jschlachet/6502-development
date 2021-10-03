@@ -38,8 +38,7 @@ reset:
   jsr init_acia
 
   jsr set_message_startup
-  ;jsr send_message_serial
-  jsr send_message_lcd
+  jsr send_message_serial
 
   jsr show_prompt
  
@@ -50,7 +49,7 @@ init_via:
   ; bring via to a known initial state
   JSR set_via2
   LDX #$0
-  LDA #%01111111        ; pin 7 of port b is output (LED)
+  LDA #%10000000        ; pin 7 of port b is output (LED)
   STA (ZP_VIA_DDRB,x)
   LDA #%00000000
   STA (ZP_VIA_DDRA,x)

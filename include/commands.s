@@ -158,22 +158,17 @@ parse_command_version:
   JMP option_done
 
 parse_command_status:
+  ; assuming led pin is in output mode
   LDA #<message_status
   STA ZP_MESSAGE
   LDA #>message_status
   STA ZP_MESSAGE+1
   JSR send_message_serial
-
   LDX #0
-  LDA (ZP_VIA_DDRB,x)
-  PHA                   ; save copy of initial ddrb state
-  ORA #%10000000        ; set bit 7 to 1 (output)
-  STA (ZP_VIA_DDRB,x)
-
   LDA (ZP_VIA_PORTB,x)
-  CMP #%10000000
+  CMP #%10000000        ; test led pin
   BCC status_led_off    ; branch if bit 7 was 0 (overflow from AND)
-  ; status_led_on
+status_led_on:
   LDA #<message_led_on
   STA ZP_MESSAGE
   LDA #>message_led_on
@@ -186,9 +181,6 @@ status_led_off:
   STA ZP_MESSAGE+1
 status_led_done:
   JSR send_message_serial
-  ; restore state of ddrb
-  PLA                   ; restore state of ddrb 
-  STA(ZP_VIA_DDRA,x)
   JMP option_done
 
 option_done:

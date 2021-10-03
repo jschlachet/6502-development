@@ -24,7 +24,7 @@ reset:
 
   ; initialize via port a
   LDX #0
-  LDA #$ff
+  LDA #%01111111
   STA (ZP_VIA_DDRA,x)
   LDA $00
   STA (ZP_VIA_PORTA,x)

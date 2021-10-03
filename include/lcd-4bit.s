@@ -7,10 +7,14 @@
 ; zero page pointers to hold addresses for the target via device.
 ;
 
+  .include "zeropage.cfg"
+  .include "acia.cfg"
+
 lcd_init:
   PHA                   ; 
   LDX #0                ; will be using X=0 repeatedly
-  LDA #%01111111        ; all but top pin of A are output
+  LDA (ZP_VIA_DDRA,x)
+  ORA #%01111111        ; set all but pin7 to 1 (output)
   STA (ZP_VIA_DDRA,x)   ; set direction register
   LDA #$00
   STA (ZP_VIA_PORTA,x)  ; also initialize port a
@@ -145,7 +149,9 @@ delay_25ms:
 lcd_wait:
   PHA
   LDX #0
-  LDA #%01110000  ; control lines output, data lines input
+  LDA (ZP_VIA_DDRA,x)
+  ORA #%01110000        ; set 6,5,4 control lines to 1 (output)
+  AND #%11110000        ; set 3,2,1,0 data lines to 0 input
   STA (ZP_VIA_DDRA,x)
 lcd_busy:
   LDA #RW
@@ -168,7 +174,8 @@ lcd_busy:
   AND #%00001000
   BNE lcd_busy
 
-  LDA #%01111111        ; reset control and data lines to output
+  LDA (ZP_VIA_DDRA,x)
+  ORA #%01111111          ; set all but bit 7 to 1 (output)
   STA (ZP_VIA_DDRA,x)
 
   LDA #0                ; reset state of port a
@@ -177,7 +184,10 @@ lcd_busy:
   PLA
   RTS
 
-
+; ORA #%01000000 - set bit 6 to 1
+; AND #%10111111 - set bit 6 to 0
+; EOR #%01000000 - reverse bit 6
+; AND #%01000000 - if bit 6 is 0, then set overflow flag
 
 lcd_instruction:
   JSR lcd_wait
@@ -230,3 +240,37 @@ print_char:
   PLX
   RTS
 
+
+; skip on $0d, $0a
+send_message_lcd:
+  PHA
+  PHY
+  LDY #0
+send_message_lcd_next:
+  LDA (ZP_MESSAGE),y
+  BEQ send_message_lcd_done
+  CMP #$0d
+  BEQ send_message_lcd_skip
+  CMP #$0a
+  BEQ send_message_lcd_skip
+  JSR print_char
+send_message_lcd_skip:
+  INY
+  jmp send_message_lcd_next
+send_message_lcd_done:
+  ; go to 2nd line
+  ; only if message is not prompt
+  LDA #<message_prompt  ; check high byte of address
+  CMP $08
+  BNE send_message_lcd_exit
+  LDA #>message_prompt  ; check low byte of addres
+  CMP $09
+  BNE send_message_lcd_exit
+  LDA #$c               ; move to 2nd line on lcd
+  JSR lcd_instruction_nowait
+  LDA #$0               ;
+  JSR lcd_instruction
+send_message_lcd_exit:
+  PLY
+  PLA
+  RTS

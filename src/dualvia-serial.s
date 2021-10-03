@@ -6,13 +6,9 @@
   .include "acia.cfg"
   .include "lcd-4bit.cfg"
   .include "via.cfg"
+  .include "zeropage.cfg"
 
-ZP_MESSAGE   = $08 ; message to send via serial
 
-message_startup: .byte $0d, $0a, "Starting up.", $0d, $0a, $00 ; CR LF NULL
-message_empty: .byte "Buffer empty.", $0d, $0a, $00
-message_buffer: .byte $0d, $0a, "Buffer contents:", $0d, $0a, $00
-message_crlf: .byte $0d, $0a, $00
 
   .code
 
@@ -24,23 +20,51 @@ reset:
   ldx #$ff
   txs
 
-  ldx #0
+  jsr init_via
 
   jsr set_via2
   jsr lcd_init
 
-  ; make a dollar size prompt on lcd
-  lda #$24 ; dollar sign
-  jsr print_char
+  ; ; make prompt on lcd
+  ; lda #$3e ; greater than sign
+  ; jsr print_char
+
+  ; initialize ZP_INPUT as pointer to user input string
+  LDA #<INPUT_COMMAND
+  STA ZP_INPUT
+  LDA #>INPUT_COMMAND
+  STA ZP_INPUT+1
 
   jsr init_acia
 
   jsr set_message_startup
-  jsr send_message
+  ;jsr send_message_serial
+  jsr send_message_lcd
 
+  jsr show_prompt
+ 
   cli                   ; clear interrupt (enable)
   jsr loop
 
+init_via:
+  ; bring via to a known initial state
+  JSR set_via2
+  LDX #$0
+  LDA #%01111111        ; pin 7 of port b is output (LED)
+  STA (ZP_VIA_DDRB,x)
+  LDA #%00000000
+  STA (ZP_VIA_DDRA,x)
+  STA (ZP_VIA_PORTA,x)
+  STA (ZP_VIA_PORTB,x)
+  RTS
+
+show_prompt:
+  JSR set_message_crlf
+  JSR send_message_serial
+  JSR set_message_prompt
+  JSR send_message_serial
+  ;JSR send_message_lcd
+  RTS
 
 loop:
   jmp loop
@@ -67,8 +91,10 @@ key_escape_continue:
   JMP key_backspace
 key_backspace_continue:
   
-  ; CMP #$0d             ; enter
-  ; BEQ key_enter
+  CMP #$0d              ; enter
+  BNE key_enter_continue
+  JMP key_enter
+key_enter_continue:
 
   CMP #$60              ; backtick
   BNE key_backtick_continue
@@ -84,7 +110,8 @@ perform_reset_continue:
   JSR write_acia_buffer
   JSR print_char
 
-  ; echo back
+  ; special keys are done.
+  ; default action is to echo back
   STA ACIA_DATA
   JSR delay_6551
 
@@ -93,15 +120,21 @@ perform_reset_continue:
   CMP #$f0
   BCC irq_end
 
+  JSR set_message_bufferfull
+  JSR send_message_serial
   ; ; less than 0x0f (15) chars left, push rts down
   LDA #$01
   STA ACIA_COMMAND
+  ; TODO what else should we do here? maybe soft reset or clear buffer.
 
   ;sta ACIA_DATA
   ; debugging; this sends a char to the lcd.
   ; it sends the same char indefinitely.
   ; lda #$41 ; "A"
   ; jsr print_char
+  JMP irq_reset_end
+irq_reset_end_prompt:
+  JSR show_prompt
 irq_reset_end:
   BIT ACIA_STATUS ; reset interrupt of ACIA
 irq_end:

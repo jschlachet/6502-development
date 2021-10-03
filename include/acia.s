@@ -188,10 +188,6 @@ key_backspace_end:
   JMP irq_reset_end
 
 key_backtick:           ; $60
-  ; LDA #$0               ; clear display $01
-  ; JSR lcd_instruction_nowait
-  ; LDA #$1               ;
-  ; JSR lcd_instruction
   JSR print_buffer
   JSR init_acia_buffer
   JMP irq_reset_end
@@ -220,34 +216,6 @@ key_enter_done:
   LDA #$00                ; add NULL to end of string
   STA (ZP_INPUT),y        ;
  
-  ; JSR set_message_crlf  ; print crlf
-  ; JSR send_message_serial
- 
-  ; LDA #<INPUT_COMMAND
-  ; STA ZP_MESSAGE
-  ; LDA #>INPUT_COMMAND
-  ; STA ZP_MESSAGE+1
-  ; JSR send_message_serial ; print command
-
-
-  ;
-  ;
-
-  ; LDA #$0               ; clear display $01
-  ; JSR lcd_instruction_nowait
-  ; LDA #$1
-  ; JSR lcd_instruction
-
-  ; print command back out
-  ; LDA #<ZP_INPUT
-  ; STA ZP_MESSAGE
-  ; LDA #>ZP_INPUT
-  ; STA ZP_MESSAGE+1
-  ; JSR send_message_lcd
-  ; ;
-  ;
-  ;
-
   ; parse command
   JSR parse_command
   JSR init_acia_buffer

@@ -14,7 +14,10 @@ lcd_init:
   PHA                   ; 
   LDX #0                ; will be using X=0 repeatedly
   LDA (ZP_VIA_DDRA,x)
-  ORA #%01111111        ; set all but pin7 to 1 (output)
+  PHA
+  ; set port a to input except pin 7
+  ; we are setting pin 7 to input so we dont change its output here
+  LDA #%01111111        ; set all but pin7 to 1 (input)
   STA (ZP_VIA_DDRA,x)   ; set direction register
   LDA #$00
   STA (ZP_VIA_PORTA,x)  ; also initialize port a
@@ -85,6 +88,8 @@ lcd_init:
   LDA #$0e
   JSR lcd_instruction_nowait
 
+  PLA
+  STA (ZP_VIA_DDRA,x)   ; restore ddra from copy saved to stack
   PLA
   RTS
 
@@ -176,6 +181,7 @@ lcd_busy:
 
   LDA (ZP_VIA_DDRA,x)
   ORA #%01111111          ; set all but bit 7 to 1 (output)
+  ;AND #%01111111    ; did not work      
   STA (ZP_VIA_DDRA,x)
 
   LDA #0                ; reset state of port a

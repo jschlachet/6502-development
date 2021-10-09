@@ -106,41 +106,23 @@ parse_command_help:
   JMP option_done
 
 
+; assuming via2 is active (left via)
 parse_command_led:      ; toggle via 2, port b, pin 7 
   LDX #0
-  ; read ddrb and clear bit 7
-  LDA (ZP_VIA_DDRB,x)   ;
-  PHA                   ; save initial ddrb state
-  PHA                   ;
-  ORA #%10000000        ; set bit 7 to 1 (output)
-  STA (ZP_VIA_DDRB,x)   ;
 
-  ; read pin 7 and stash state in Y
+  LDA (ZP_VIA_DDRB,x)   ; read ddr for port b and save on stack
+  PHA
+  ORA #%10000000        ; set pin 7 to 1 
+  STA (ZP_VIA_DDRB,x)   ; 
+
   LDA (ZP_VIA_PORTB,x)
-  TAY                   ; stash new PORTB to Y
-
-  ; set pin 7 to input
-  PLA
-  AND #%01111111        ; set  bit 7 to 0 (input)
-  STA (ZP_VIA_DDRB,x)
-
-  ; pull portb state from Y and push to port b
-  TYA
   EOR #%10000000        ; reverse bit 7
   STA (ZP_VIA_PORTB,x)
-  ; EOR #%10000000        ; reverse bit 7
-  ; STA (ZP_VIA_PORTB,x)
-  ; EOR #%10000000        ; reverse bit 7
-  ; STA (ZP_VIA_PORTB,x)
-  ; EOR #%10000000        ; reverse bit 7
-  ; STA (ZP_VIA_PORTB,x)
 
-  ; restore state of ddrb
-  PLA
+  PLA                   ; restore ddr and send
   STA (ZP_VIA_DDRB,x)
 
- ;
-  LDA #<message_led
+  LDA #<message_led     ; send toggle message
   STA ZP_MESSAGE
   LDA #>message_led
   STA ZP_MESSAGE+1

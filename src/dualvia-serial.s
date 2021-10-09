@@ -46,13 +46,24 @@ reset:
   jsr loop
 
 init_via:
-  ; bring via to a known initial state
-  JSR set_via2
   LDX #$0
-  LDA #%10000000        ; pin 7 of port b is output (LED)
-  STA (ZP_VIA_DDRB,x)
-  LDA #%00000000
+  ; bring both ports of via to a known initial state
+  ;
+  JSR set_via1          ; right
+  ;
+  LDA #%11111111        ; all pins output
   STA (ZP_VIA_DDRA,x)
+  STA (ZP_VIA_DDRB,x)
+  LDA #%00000000        ; all pins low
+  STA (ZP_VIA_PORTA,x)
+  STA (ZP_VIA_PORTB,x)
+  ;
+  JSR set_via2          ; left
+  ;
+  LDA #%11111111        ; all pins output
+  STA (ZP_VIA_DDRA,x)
+  STA (ZP_VIA_DDRB,x)
+  LDA #%00000000        ; all pins low
   STA (ZP_VIA_PORTA,x)
   STA (ZP_VIA_PORTB,x)
   RTS
@@ -62,7 +73,6 @@ show_prompt:
   JSR send_message_serial
   JSR set_message_prompt
   JSR send_message_serial
-  ;JSR send_message_lcd
   RTS
 
 loop:

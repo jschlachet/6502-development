@@ -7,7 +7,8 @@
 ; zero page pointers to hold addresses for the target via device.
 ;
 
-  .include "globals.s"
+  .include "via.cfg"
+  .include "lcd-4bit.cfg"
 
   .code ; .org $8000
 
@@ -23,7 +24,7 @@ reset:
 
   ; initialize via port a
   LDX #0
-  LDA #$ff
+  LDA #%01111111
   STA (ZP_VIA_DDRA,x)
   LDA $00
   STA (ZP_VIA_PORTA,x)

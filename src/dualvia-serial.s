@@ -15,12 +15,15 @@
   .include "acia.s"
   .include "lcd-4bit.s"
   .include "via.s"
+  .include "sn76489.s"
 
 reset:
   ldx #$ff
   txs
 
   jsr init_via
+
+  jsr sound_mute        ; TEMP
 
   jsr set_via2
   jsr lcd_init
@@ -51,12 +54,15 @@ init_via:
   ;
   JSR set_via1          ; right
   ;
-  LDA #%11111111        ; all pins output
-  STA (ZP_VIA_DDRA,x)
-  STA (ZP_VIA_DDRB,x)
-  LDA #%00000000        ; all pins low
+  LDA #%00000000
   STA (ZP_VIA_PORTA,x)
+  LDA #%00000011        ; init pin 0 (/WE) as high (inactive)
   STA (ZP_VIA_PORTB,x)
+  ; hard set both port a and b to output
+  LDA #$ff
+  STA (ZP_VIA_DDRA,x)
+  LDA #%00000001 ; pin 0 is /WE (output so we can write it), 1 in RDY (input)
+  STA (ZP_VIA_DDRB,x)
   ;
   JSR set_via2          ; left
   ;

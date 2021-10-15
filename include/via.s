@@ -1,3 +1,7 @@
+.ifndef _VIA_S_
+_VIA_S_ = 1
+
+
 set_via1:
   pha
 
@@ -52,3 +56,5 @@ set_via2:
 
   pla
   rts
+
+.endif

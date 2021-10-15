@@ -6,6 +6,8 @@ COMMAND_HELP:     .asciiz "help"
 COMMAND_VERSION:  .asciiz "version"
 COMMAND_LED:      .asciiz "led"
 COMMAND_STATUS:   .asciiz "status"
+COMMAND_BEEP:     .asciiz "beep"
+COMMAND_CRASH:    .asciiz "crash"
 
 NULL    = $00
 EQUAL   = $00
@@ -14,6 +16,8 @@ GT      = $01
 
 
   .include "zeropage.cfg"
+
+  .include "sn76489.s"
 
 ; ref: http://prosepoetrycode.potterpcs.net/tag/6502/
 ; Arguments:
@@ -80,7 +84,7 @@ parse_command:
   CMP #EQUAL
   BEQ parse_command_led
 
-  ; led
+  ; status
   LDA #<COMMAND_STATUS
   STA ZP_COMMAND
   LDA #>COMMAND_STATUS
@@ -88,6 +92,24 @@ parse_command:
   JSR strcmp
   CMP #EQUAL
   BEQ parse_command_status
+
+  ; beep
+  LDA #<COMMAND_BEEP
+  STA ZP_COMMAND
+  LDA #>COMMAND_BEEP
+  STA ZP_COMMAND+1
+  JSR strcmp
+  CMP #EQUAL
+  BEQ parse_command_beep
+
+  ;. beep
+  LDA #<COMMAND_CRASH
+  STA ZP_COMMAND
+  LDA #>COMMAND_CRASH
+  STA ZP_COMMAND+1
+  JSR strcmp
+  CMP #EQUAL
+  BEQ parse_command_crash
 
   ; default - unknown
   LDA #<message_unknown
@@ -105,6 +127,22 @@ parse_command_help:
   JSR send_message_serial
   JMP option_done
 
+
+parse_command_beep:
+  JSR beep
+  JMP option_done
+
+parse_command_crash:
+  JSR sound_crash
+  JMP option_done
+
+parse_command_version:
+  LDA #<message_version
+  STA ZP_MESSAGE
+  LDA #>message_version
+  STA ZP_MESSAGE+1
+  JSR send_message_serial
+  JMP option_done
 
 ; assuming via2 is active (left via)
 parse_command_led:      ; toggle via 2, port b, pin 7 
@@ -131,13 +169,6 @@ parse_command_led:      ; toggle via 2, port b, pin 7
   JMP option_done
 
 
-parse_command_version:
-  LDA #<message_version
-  STA ZP_MESSAGE
-  LDA #>message_version
-  STA ZP_MESSAGE+1
-  JSR send_message_serial
-  JMP option_done
 
 parse_command_status:
   ; assuming led pin is in output mode

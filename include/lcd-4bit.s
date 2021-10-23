@@ -17,7 +17,7 @@ lcd_init:
   PHA
   ; set port a to input except pin 7
   ; we are setting pin 7 to input so we dont change its output here
-  LDA #%01111111        ; set all but pin7 to 1 (input)
+  LDA #%11111111        ; set all pins to 1 (input)
   STA (ZP_VIA_DDRA,x)   ; set direction register
   LDA #$00
   STA (ZP_VIA_PORTA,x)  ; also initialize port a
@@ -93,6 +93,30 @@ lcd_init:
   PLA
   RTS
 
+lcd_clear:
+  PHA 
+  PHX
+
+  LDX #0                ;
+  LDA (ZP_VIA_DDRA,x)   ; save original state of ddra
+  PHA
+
+  LDA #%11111111        ; set all pins to 1 (output)
+  STA (ZP_VIA_DDRA,x)   ; set direction register
+
+  ; 8. Write 0x00/0x01 to clear the Display;
+  LDA #$00
+  JSR lcd_instruction
+  LDA #$01
+  JSR lcd_instruction_nowait
+  JSR lcd_wait
+
+  PLA
+  STA (ZP_VIA_DDRA,x)   ; restore ddra from copy saved to stack
+
+  PLX
+  PLA
+  RTS
 
 ; precise delay routine by dclxvi in the 6502 forums.
 ; A and Y are high and low bytes of a 16 bit value.
@@ -154,46 +178,42 @@ delay_25ms:
 lcd_wait:
   PHA
   LDX #0
-  LDA (ZP_VIA_DDRA,x)
-  ORA #%01110000        ; set 6,5,4 control lines to 1 (output)
-  AND #%11110000        ; set 3,2,1,0 data lines to 0 input
+  LDA #%11110000        ; pin 7 always output, 6..4 output, 3..0 input
   STA (ZP_VIA_DDRA,x)
 lcd_busy:
   LDA #RW
+  JSR preserve_led_state; restore bit 7 to state from led
   STA (ZP_VIA_PORTA,x)
   LDA #(RW | E)
+  JSR preserve_led_state; restore bit 7 to state from led
   STA (ZP_VIA_PORTA,x)
-  LDA (ZP_VIA_PORTA,x)
-
+  LDA (ZP_VIA_PORTA,x)  ; read port a
   ; since we're in 4bit mode, reads come in as two nibbles
   ; save what we got and do another read
   ; then pull back what we read first (high nibble)
   PHA
-  LDA #RW
+  LDA LED_STATUS        ; load led state and apply rw
+  ORA #RW
+  ;
   STA (ZP_VIA_PORTA,x)
-  LDA #(RW | E)
+  LDA LED_STATUS
+  ORA #(RW | E)
   STA (ZP_VIA_PORTA,x)
-  LDA (ZP_VIA_PORTA,x)
-  PLA
+  LDA (ZP_VIA_PORTA,x)  ; read port a 
+  PLA                   ; pull first nibble since it should have D7 (busy)
 
-  AND #%00001000
+  AND #%00001000        ; check D7 (shifted right by four)
   BNE lcd_busy
 
-  LDA (ZP_VIA_DDRA,x)
-  ORA #%01111111          ; set all but bit 7 to 1 (output)
-  ;AND #%01111111    ; did not work      
-  STA (ZP_VIA_DDRA,x)
+  LDA #%11111111        ; set all pins to output
+  STA (ZP_VIA_DDRA,x)   ; store new state to ddr 
 
-  LDA #0                ; reset state of port a
+  ; reset port a to known state
+  LDA LED_STATUS
   STA (ZP_VIA_PORTA,x)
 
   PLA
   RTS
-
-; ORA #%01000000 - set bit 6 to 1
-; AND #%10111111 - set bit 6 to 0
-; EOR #%01000000 - reverse bit 6
-; AND #%01000000 - if bit 6 is 0, then set overflow flag
 
 lcd_instruction:
   JSR lcd_wait
@@ -201,6 +221,7 @@ lcd_instruction:
   RTS
 
 lcd_instruction_nowait:
+  JSR preserve_led_state; restore bit 7 to state from led
   STA (ZP_VIA_PORTA,x)
   ORA #E                ; set E bit
   STA (ZP_VIA_PORTA,x)
@@ -208,6 +229,16 @@ lcd_instruction_nowait:
   STA (ZP_VIA_PORTA,x)
   RTS
 
+preserve_led_state:
+  BIT LED_STATUS
+  BMI led_on
+  AND #%01111111        ; clear bit 7
+  JMP led_preserved
+led_on:
+  ORA #%10000000        ; set bit 7
+led_preserved:
+  RTS
+  
 
 print_char:
   PHX
@@ -218,10 +249,12 @@ print_char:
   ; a contrains character to print
   LDX #0                ; needed for indirect addressing
   
-  LSR a                 ; shift right 4 bits
+  LSR a                 ; logical shift right 4 bits
   LSR a
   LSR a
   LSR a
+
+  JSR preserve_led_state; restore bit 7 to state from led
 
   ORA #RS               ; send high nibble first with RS set
   STA (ZP_VIA_PORTA,x)
@@ -232,9 +265,9 @@ print_char:
   
   PLA                   ; pull copy of A back from stack
 
-  ;JSR lcd_wait
-  ; PHA                   ; preserve a
-  AND #$0f              ; clear upper nibble
+  AND #%00001111        ; clear upper nibble
+  JSR preserve_led_state; restore bit 7 to state from led
+
   ORA #RS               ; set RS bit
   STA (ZP_VIA_PORTA,x)
   ORA #(E|RS)           ; set RS and E

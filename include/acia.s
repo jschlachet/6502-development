@@ -228,7 +228,7 @@ key_enter_empty:          ; enter but buffer is empty
 key_enter_exit:           ; ready to exit
   ; reset lcd
   jsr set_via2
-  jsr lcd_init
+  jsr lcd_clear
   ;
   PLY
   PLX

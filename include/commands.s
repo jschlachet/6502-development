@@ -148,17 +148,19 @@ parse_command_version:
 parse_command_led:      ; toggle via 2, port b, pin 7 
   LDX #0
 
-  LDA (ZP_VIA_DDRB,x)   ; read ddr for port b and save on stack
+  LDA (ZP_VIA_DDRA,x)   ; read ddr for port b and save on stack
   PHA
-  ORA #%10000000        ; set pin 7 to 1 
-  STA (ZP_VIA_DDRB,x)   ; 
+  ORA #%10000000        ; set pin 7 to 1  (output)
+  STA (ZP_VIA_DDRA,x)   ; 
 
-  LDA (ZP_VIA_PORTB,x)
+  LDA (ZP_VIA_PORTA,x)
   EOR #%10000000        ; reverse bit 7
-  STA (ZP_VIA_PORTB,x)
+  STA (ZP_VIA_PORTA,x)
+  AND #%10000000        ; set other bits to 0
+  STA LED_STATUS        ; ensure led_status is always only ever bit 7
 
   PLA                   ; restore ddr and send
-  STA (ZP_VIA_DDRB,x)
+  STA (ZP_VIA_DDRA,x)
 
   LDA #<message_led     ; send toggle message
   STA ZP_MESSAGE
@@ -177,20 +179,18 @@ parse_command_status:
   LDA #>message_status
   STA ZP_MESSAGE+1
   JSR send_message_serial
-  LDX #0
-  LDA (ZP_VIA_PORTB,x)
-  CMP #%10000000        ; test led pin
-  BCC status_led_off    ; branch if bit 7 was 0 (overflow from AND)
-status_led_on:
-  LDA #<message_led_on
-  STA ZP_MESSAGE
-  LDA #>message_led_on
-  STA ZP_MESSAGE+1
-  JMP status_led_done
+  BIT LED_STATUS
+  BMI status_led_on
 status_led_off:
   LDA #<message_led_off
   STA ZP_MESSAGE
   LDA #>message_led_off
+  STA ZP_MESSAGE+1
+  JMP status_led_done
+status_led_on:
+  LDA #<message_led_on
+  STA ZP_MESSAGE
+  LDA #>message_led_on
   STA ZP_MESSAGE+1
 status_led_done:
   JSR send_message_serial

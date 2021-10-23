@@ -1,4 +1,16 @@
 ;
+; right via (via1)
+;  -- PA0..PA3 to LCD D4..D7
+;  -- PA4      to LCD E
+;  -- PA5      to LCD RW
+;  -- PA6      to LCD RS
+;  -- PA7      to LED
+;  -- PB0..PB7 unconnected
+; left via  (via2)
+;  -- PA0..PA7 to ACIA D7..D0
+;  -- PB0      to ACIA /WE
+;  -- PB1      to ACIA RDY
+;  -- PB2..PB7 unconnected
 
   .setcpu "65C02"
 
@@ -27,6 +39,9 @@ reset:
 
   jsr set_via2
   jsr lcd_init
+
+  LDA #0
+  STA LED_STATUS
 
   ; ; make prompt on lcd
   ; lda #$3e ; greater than sign

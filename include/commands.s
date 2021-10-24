@@ -8,6 +8,8 @@ COMMAND_LED:      .asciiz "led"
 COMMAND_STATUS:   .asciiz "status"
 COMMAND_BEEP:     .asciiz "beep"
 COMMAND_CRASH:    .asciiz "crash"
+COMMAND_READ:     .asciiz "read"
+COMMAND_WRITE:    .asciiz "write"
 
 NULL    = $00
 EQUAL   = $00
@@ -64,7 +66,9 @@ parse_command:
   STA ZP_COMMAND+1
   JSR strcmp
   CMP #EQUAL
-  BEQ parse_command_help
+  BNE parse_command_help_continue
+  JMP parse_command_help
+parse_command_help_continue:
   
   ; version
   LDA #<COMMAND_VERSION
@@ -73,7 +77,9 @@ parse_command:
   STA ZP_COMMAND+1
   JSR strcmp
   CMP #EQUAL
-  BEQ parse_command_version
+  BNE parse_command_version_continue
+  JMP parse_command_version
+parse_command_version_continue:
 
   ; led
   LDA #<COMMAND_LED
@@ -82,7 +88,9 @@ parse_command:
   STA ZP_COMMAND+1
   JSR strcmp
   CMP #EQUAL
-  BEQ parse_command_led
+  BNE parse_command_led_continue
+  JMP parse_command_led
+parse_command_led_continue:
 
   ; status
   LDA #<COMMAND_STATUS
@@ -91,7 +99,9 @@ parse_command:
   STA ZP_COMMAND+1
   JSR strcmp
   CMP #EQUAL
-  BEQ parse_command_status
+  BNE parse_command_status_continue
+  JMP parse_command_status
+parse_command_status_continue:
 
   ; beep
   LDA #<COMMAND_BEEP
@@ -100,7 +110,9 @@ parse_command:
   STA ZP_COMMAND+1
   JSR strcmp
   CMP #EQUAL
-  BEQ parse_command_beep
+  BNE parse_command_beep_continue
+  JMP parse_command_beep
+parse_command_beep_continue:
 
   ;. beep
   LDA #<COMMAND_CRASH
@@ -109,8 +121,32 @@ parse_command:
   STA ZP_COMMAND+1
   JSR strcmp
   CMP #EQUAL
-  BEQ parse_command_crash
+  BNE parse_command_crash_continue
+  JMP parse_command_crash
+parse_command_crash_continue:
 
+  ; read
+  LDA #<COMMAND_READ
+  STA ZP_COMMAND
+  LDA #>COMMAND_READ
+  STA ZP_COMMAND+1
+  JSR strcmp
+  CMP #EQUAL
+  BNE parse_command_read_continue
+  JMP parse_command_read
+parse_command_read_continue:
+
+  ; write
+  LDA #<COMMAND_WRITE
+  STA ZP_COMMAND
+  LDA #>COMMAND_WRITE
+  STA ZP_COMMAND+1
+  JSR strcmp
+  CMP #EQUAL
+  BNE parse_command_write_continue
+  JMP parse_command_write
+parse_command_write_continue:
+  
   ; default - unknown
   LDA #<message_unknown
   STA ZP_MESSAGE
@@ -196,6 +232,8 @@ status_led_done:
   JSR send_message_serial
   JMP option_done
 
+parse_command_read:
+parse_command_write:
 option_done:
   PLY
   PLX

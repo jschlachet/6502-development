@@ -201,7 +201,7 @@ key_enter:              ; $0d
   PHY
 
   JSR acia_buffer_diff  ; is buffer empty?
-  BEQ key_enter_empty
+  BEQ key_enter_exit    ; silently exit and loop
 
   ; pull base command into INPUT_COMMAND
   LDY #0
@@ -216,17 +216,12 @@ key_enter_done:
   LDA #$00                ; add NULL to end of string
   STA (ZP_INPUT),y        ;
  
+  JSR copy_args
   ; parse command
   JSR parse_command
   JSR init_acia_buffer
   JMP key_enter_exit
-key_enter_empty:          ; enter but buffer is empty
-  JSR set_message_crlf
-  JSR send_message_serial
-  JSR set_message_empty
-  JSR send_message_serial
 key_enter_exit:           ; ready to exit
-  ; reset lcd
   jsr set_via2
   jsr lcd_clear
   ;
@@ -235,7 +230,47 @@ key_enter_exit:           ; ready to exit
   PLA
   JMP irq_reset_end_prompt
 
+;
+; take ZP_INPUT, truncates it at the first space
+; and copies the remainder to INPUT_ARGS
+; !! no length checking here !!
+;
+copy_args:
+  PHA
+  PHX
+  PHY
 
+  LDY #0                ; position in input
+copy_args_loop:
+  LDA (ZP_INPUT),y      ; inspect char
+  CMP #0                ; null
+  BEQ copy_args_end     ; if null then shortcut to the end
+ 
+  INY
+  CMP #' '              ; space
+  BNE copy_args_loop    ; if no space yet then keep going
+  DEY                   ; decrement y once 
+  ; at the space now
+  LDA #0                ;
+  STA (ZP_INPUT),Y      ; put null where the space was
+  INY                   ; forward to first char of arguments
+
+  JSR set_message_crlf
+  JSR send_message_serial
+
+  LDX #0                ; position in args
+copy_to_args_loop:
+  LDA (ZP_INPUT),Y      ; load char from input
+  STA INPUT_ARGS,X      ; store char in args
+  INY
+  INX
+  CMP #0                ; was it a null?
+  BNE copy_to_args_loop
+copy_args_end:
+  PLY
+  PLX
+  PLA
+  RTS
 
 send_backspace_serial:
   LDA #$08              ; ASCII BS

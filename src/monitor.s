@@ -52,6 +52,11 @@ reset:
   STA ZP_INPUT
   LDA #>INPUT_COMMAND
   STA ZP_INPUT+1
+  
+  LDA #<INPUT_ARGS
+  STA ZP_ARGS
+  LDA #>INPUT_ARGS
+  STA ZP_ARGS+1
 
   jsr init_acia
 

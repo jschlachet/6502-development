@@ -207,14 +207,14 @@ key_enter:              ; $0d
   LDY #0
 key_enter_loop:
   JSR read_acia_buffer
-  STA (ZP_INPUT),y
+  STA INPUT_COMMAND,y
   INY
   JSR acia_buffer_diff
   BNE key_enter_loop
   ;BEQ key_enter_done
 key_enter_done:
   LDA #$00                ; add NULL to end of string
-  STA (ZP_INPUT),y        ;
+  STA INPUT_COMMAND,y        ;
  
   JSR copy_args
   ; parse command
@@ -231,7 +231,7 @@ key_enter_exit:           ; ready to exit
   JMP irq_reset_end_prompt
 
 ;
-; take ZP_INPUT, truncates it at the first space
+; take user input, truncates it at the first space
 ; and copies the remainder to INPUT_ARGS
 ; !! no length checking here !!
 ;
@@ -242,7 +242,7 @@ copy_args:
 
   LDY #0                ; position in input
 copy_args_loop:
-  LDA (ZP_INPUT),y      ; inspect char
+  LDA INPUT_COMMAND,y      ; inspect char
   CMP #0                ; null
   BEQ copy_args_end     ; if null then shortcut to the end
  
@@ -252,7 +252,7 @@ copy_args_loop:
   DEY                   ; decrement y once 
   ; at the space now
   LDA #0                ;
-  STA (ZP_INPUT),Y      ; put null where the space was
+  STA INPUT_COMMAND,Y      ; put null where the space was
   INY                   ; forward to first char of arguments
 
   JSR set_message_crlf
@@ -260,7 +260,7 @@ copy_args_loop:
 
   LDX #0                ; position in args
 copy_to_args_loop:
-  LDA (ZP_INPUT),Y      ; load char from input
+  LDA INPUT_COMMAND,Y      ; load char from input
   STA INPUT_ARGS,X      ; store char in args
   INY
   INX

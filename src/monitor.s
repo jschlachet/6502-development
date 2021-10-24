@@ -35,23 +35,13 @@ reset:
 
   jsr init_via
 
-  jsr sound_mute        ; TEMP
+  jsr sound_mute
 
   jsr set_via2
   jsr lcd_init
 
   LDA #0
   STA LED_STATUS
-
-  ; ; make prompt on lcd
-  ; lda #$3e ; greater than sign
-  ; jsr print_char
-
-  ; initialize ZP_INPUT as pointer to user input string
-  LDA #<INPUT_COMMAND
-  STA ZP_INPUT
-  LDA #>INPUT_COMMAND
-  STA ZP_INPUT+1
   
   LDA #<INPUT_ARGS
   STA ZP_ARGS

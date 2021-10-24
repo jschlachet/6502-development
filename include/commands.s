@@ -10,6 +10,7 @@ COMMAND_BEEP:     .asciiz "beep"
 COMMAND_CRASH:    .asciiz "crash"
 COMMAND_READ:     .asciiz "read"
 COMMAND_WRITE:    .asciiz "write"
+COMMAND_DUMP:     .asciiz "dump"
 
 NULL    = $00
 EQUAL   = $00
@@ -33,8 +34,8 @@ strcmp:
   PHY
   LDY #$00
 strcmp_load:
-  LDA (ZP_COMMAND), Y ; command we're comparing with 
-  CMP (ZP_INPUT), Y   ; user input
+  LDA (ZP_COMMAND), Y   ; command we're comparing with 
+  CMP INPUT_COMMAND, Y  ; user input
   BNE strcmp_lesser
   INY
   CMP #NULL
@@ -146,7 +147,18 @@ parse_command_read_continue:
   BNE parse_command_write_continue
   JMP parse_command_write
 parse_command_write_continue:
-  
+
+  ; dump
+  LDA #<COMMAND_DUMP
+  STA ZP_COMMAND
+  LDA #>COMMAND_DUMP
+  STA ZP_COMMAND+1
+  JSR strcmp
+  CMP #EQUAL
+  BNE parse_command_dump_continue
+  JMP parse_command_dump
+parse_command_dump_continue:
+
   ; default - unknown
   LDA #<message_unknown
   STA ZP_MESSAGE
@@ -163,7 +175,6 @@ parse_command_help:
   JSR send_message_serial
   JMP option_done
 
-
 parse_command_beep:
   JSR beep
   JMP option_done
@@ -179,6 +190,7 @@ parse_command_version:
   STA ZP_MESSAGE+1
   JSR send_message_serial
   JMP option_done
+
 
 ; assuming via2 is active (left via)
 parse_command_led:      ; toggle via 2, port b, pin 7 
@@ -207,7 +219,6 @@ parse_command_led:      ; toggle via 2, port b, pin 7
   JMP option_done
 
 
-
 parse_command_status:
   ; assuming led pin is in output mode
   LDA #<message_status
@@ -232,8 +243,156 @@ status_led_done:
   JSR send_message_serial
   JMP option_done
 
+
+parse_command_dump:
+  LDX #0
+  STZ ZP_POINTER
+  STZ ZP_POINTER+1
+  ;
+  LDA #<message_read    ; print output header
+  STA ZP_MESSAGE
+  LDA #>message_read
+  STA ZP_MESSAGE+1
+  JSR send_message_serial
+  ;
+dump_address_loop:  
+  PHX   
+  JSR print_memory_line
+  PLX
+  INX
+  CPX #$20              ; stop after 32 lines
+  BNE dump_address_loop
+  JMP option_done
+
+
+print_memory_line:
+  PHY
+
+  LDA ZP_POINTER+1       
+  JSR print_byte         
+  LDA ZP_POINTER        
+  JSR print_byte        
+  ;
+  LDA #':'
+  STA ACIA_DATA
+  JSR delay_6551
+  LDA #' '
+  STA ACIA_DATA
+  JSR delay_6551
+
+  LDY #0
+print_memory_line_loop:
+  LDA (ZP_POINTER)
+  JSR print_byte        ; print this byte
+  LDA #' '              ; space
+  STA ACIA_DATA
+  JSR delay_6551
+  ; now increment pointer
+  CLC
+  LDA ZP_POINTER
+  ADC #1
+  STA ZP_POINTER
+  LDA ZP_POINTER+1
+  ADC #0
+  STA ZP_POINTER+1
+  ;
+  INY                   ; increment loop counter
+  CPY #$10              ; we are done when we hit $10
+  BNE print_memory_line_loop
+
+  JSR set_message_crlf  ; go to next line
+  JSR send_message_serial
+
+  PLY
+  RTS
+
+;
+; for now just assume address and we will read 16 bytes from
+; that point
+;
 parse_command_read:
+  STZ ZP_POINTER
+  STZ ZP_POINTER+1
+
+  LDA #<message_read    ; print output header
+  STA ZP_MESSAGE
+  LDA #>message_read
+  STA ZP_MESSAGE+1
+  JSR send_message_serial
+  
+  ; digit 3 and digit 2 are low and high nibble of low byte
+  LDX #0
+  LDA INPUT_ARGS+3
+  JSR ascii_to_byte_low
+  LDA INPUT_ARGS+2
+  JSR ascii_to_byte_high
+  STA ZP_POINTER
+
+  ; digit 1 and digit 0 are low and high nibble of high byte
+  LDX #0
+  LDA INPUT_ARGS+1
+  JSR ascii_to_byte_low
+  LDA INPUT_ARGS+0
+  JSR ascii_to_byte_high
+  STA ZP_POINTER+1
+
+  JSR print_memory_line
+  JMP option_done
+
+
+; convert hex string (2 digits) to byte value
+; input A (character)
+; output X
+ascii_to_byte_low:
+  CLC
+  SBC #$2f              ; substract 47, moving 0 to $0
+  CMP #$a               ; check if we are less than $a (if not then we're A..F)
+  BCC ascii_to_byte_low_done
+  CLC
+  SBC #$6               ; subtract another 7, moving 'A' to $a
+  CMP #$a               ; check our new value (if still high then probably lower case)
+  BCC ascii_to_byte_low_done
+  CLC
+  SBC #$1f              ; subtract another 31, moving 'a' to $a
+ascii_to_byte_low_done:
+  TAX
+  RTS 
+
+
+; input A - high nibble character
+; input X - value of low nibble
+; output A as new value
+ascii_to_byte_high:
+  STX TEMP_VALUE        ; copy existing value to memory
+  JSR ascii_to_byte_low
+  TXA                   ; copy value of high nibble character to a
+  ASL                   ; shift value left 4 bits (x16)
+  ASL
+  ASL
+  ASL
+  CLC
+  ADC TEMP_VALUE        ; add back original value
+  RTS
+
+; input A
+print_byte:
+  PHA
+  LSR A
+  LSR A
+  LSR A
+  LSR A
+  JSR print_byte_nibble
+  PLA
+print_byte_nibble:
+  AND #%00001111        ; zero out top half
+  TAX
+  LDA hex_table,X
+  STA ACIA_DATA
+  JSR delay_6551
+  RTS
+
 parse_command_write:
+
 option_done:
   PLY
   PLX
@@ -247,6 +406,7 @@ option_done:
 ; EOR #%01000000 - reverse bit 6
 ; AND #%01000000 - if bit 6 is 0, then set overflow flag
 
-
+hex_table:
+  .byte "0123456789ABCDEF"
 
 .endif

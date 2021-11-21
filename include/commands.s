@@ -307,6 +307,36 @@ print_memory_line_loop:
   RTS
 
 ;
+; read 1st argument (address) and place contents into ZP_POINTER
+;
+parse_args_1_nnnn:
+  ; digit 3 and digit 2 are low and high nibble of low byte
+  LDX #0
+  LDA INPUT_ARGS+3
+  JSR ascii_to_byte_low
+  LDA INPUT_ARGS+2
+  JSR ascii_to_byte_high
+  STA ZP_POINTER
+  ; digit 1 and digit 0 are low and high nibble of high byte
+  LDX #0
+  LDA INPUT_ARGS+1
+  JSR ascii_to_byte_low
+  LDA INPUT_ARGS+0
+  JSR ascii_to_byte_high
+  STA ZP_POINTER+1
+  ;
+  RTS
+
+; 2nd argument 1 byte value placed into ARG_VALUE
+parse_args_2_nn:
+  LDA INPUT_ARGS+6      ; high nibble
+  JSR ascii_to_byte_low
+  LDA INPUT_ARGS+5      ; low nibble
+  JSR ascii_to_byte_high
+  STA ARG_VALUE
+  RTS
+
+;
 ; for now just assume address and we will read 16 bytes from
 ; that point
 ;
@@ -320,21 +350,7 @@ parse_command_read:
   STA ZP_MESSAGE+1
   JSR send_message_serial
   
-  ; digit 3 and digit 2 are low and high nibble of low byte
-  LDX #0
-  LDA INPUT_ARGS+3
-  JSR ascii_to_byte_low
-  LDA INPUT_ARGS+2
-  JSR ascii_to_byte_high
-  STA ZP_POINTER
-
-  ; digit 1 and digit 0 are low and high nibble of high byte
-  LDX #0
-  LDA INPUT_ARGS+1
-  JSR ascii_to_byte_low
-  LDA INPUT_ARGS+0
-  JSR ascii_to_byte_high
-  STA ZP_POINTER+1
+  JSR parse_args_1_nnnn
 
   JSR print_memory_line
   JMP option_done
@@ -392,6 +408,12 @@ print_byte_nibble:
   RTS
 
 parse_command_write:
+  JSR parse_args_1_nnnn ; store location in ZP_POINTER
+  JSR parse_args_2_nn   ; store value in ARG_VALUE
+  LDA ARG_VALUE
+  LDX #0
+  STA (ZP_POINTER,x)
+  JMP option_done
 
 option_done:
   PLY

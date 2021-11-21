@@ -1,16 +1,23 @@
 ;
-; right via (via1)
-;  -- PA0..PA3 to LCD D4..D7
-;  -- PA4      to LCD E
-;  -- PA5      to LCD RW
-;  -- PA6      to LCD RS
-;  -- PA7      to LED
-;  -- PB0..PB7 unconnected
-; left via  (via2)
-;  -- PA0..PA7 to ACIA D7..D0
-;  -- PB0      to ACIA /WE
-;  -- PB1      to ACIA RDY
-;  -- PB2..PB7 unconnected
+; VIA1 (right)
+;   Port A 
+;           A0-A7 --> SN76489
+;   Port B
+;           B0    --> SN76489 /WE
+;           B1    --> SN76489 RDY
+;           B0-B1 --> SOUND
+;           B2-B7 --> unconnected
+;
+; VIA2 (left)
+;   Port A
+;           A0-A3 --> LCD D7..D0
+;           A4    --> LCD E
+;           A5    --> LCD RW
+;           A6    --> LCD RS
+;           A7    --> USER LED
+;   Port B
+;           B0-B7 --> unconnected
+;
 
   .setcpu "65C02"
 

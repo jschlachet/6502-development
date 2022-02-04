@@ -1,7 +1,7 @@
 ;
 ; LCD 1602 in 4-bit mode and connected solely to PORT A
 ;
-; Execellent notes: 
+; Execellent notes:
 ; http://web.alfredstate.edu/faculty/weimandn/lcd/lcd_initialization/lcd_initialization_index.html
 
 ; zero page pointers to hold addresses for the target via device.
@@ -20,7 +20,7 @@ reset:
   ldx #$ff              ; (2)
   txs                   ; (2)
 
-  JSR set_via2
+  JSR set_via1
 
   ; initialize via port a
   LDX #0
@@ -28,10 +28,6 @@ reset:
   STA (ZP_VIA_DDRA,x)
   LDA $00
   STA (ZP_VIA_PORTA,x)
-
-  ; right display
-  ; jsr set_via1          ; (6)
-  ; jsr lcd_init          ; (6)
 
   ; left display  ; SINGLE PORT USE - PORT A
   JSR lcd_init
@@ -41,14 +37,14 @@ reset:
 
   JSR delay_25ms
   JSR delay_25ms
- 
+
   JMP print_hello
-  
+
 
 message_lcd: .asciiz "LCD 4bit mode!"
 
 print_hello:
-  jsr set_via2
+  jsr set_via1
   ldy #0
 print_loop:
   lda message_lcd,y

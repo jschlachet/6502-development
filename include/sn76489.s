@@ -6,10 +6,10 @@ _SN76489_S_ = 1
 ;
 ; Port A  ----> PA0 PA1 PA2 PA3 PA4 PA5 PA6 PA7 PB0 PB1
 ; SN76489 ---->  D7  D6  D5  D4  D3  D2  D1  D0 /WE RDY
-; 
+;
 
 ; SN76489 Register Writes
-; 
+;
 ; %lcctdddd
 ;             l    = data/latch (0=data, 1=latch)
 ;             cc   = channel
@@ -24,8 +24,8 @@ SN_READY = %00000010 ; ready pin
 
 sound_mute:
   PHA
-  
-  jsr set_via1
+
+  jsr set_via2
   LDX #0
   ;
   ; set all volumes to off (full attenuation)
@@ -58,7 +58,7 @@ sound_mute:
   JSR delay_200us
   JSR delay_200us
 
-  jsr set_via2
+  jsr set_via1
 
   PLA
   RTS
@@ -104,7 +104,7 @@ beep:
   ; 440 ->     125000/440=284 -> 010001 1100
   PHA
   PHX
-  JSR set_via1
+  JSR set_via2
 
   LDX #0
   LDA #%10001100        ; latch, channel 00, 0=tone, 1110= low 4 bits
@@ -124,8 +124,8 @@ beep:
   JSR many_delays
   JSR many_delays
 
-  JSR sound_mute        ; mute 
-  JSR set_via2
+  JSR sound_mute        ; mute
+  JSR set_via1
   PLX
   PLA
   RTS
@@ -133,7 +133,7 @@ beep:
 sound_chord:
   PHA
   PHX
-  JSR set_via1
+  JSR set_via2
 
   LDX #0
 
@@ -184,9 +184,9 @@ sound_chord:
   JSR many_delays
   JSR many_delays
 
-  JSR sound_mute      ; mute 
+  JSR sound_mute      ; mute
 
-  JSR set_via2
+  JSR set_via1
   PLX
   PLA
   RTS
@@ -195,16 +195,16 @@ sound_crash:
   PHA
   PHX
   PHY
-  JSR set_via1
+  JSR set_via2
 
   LDX #0
- 
+
   LDA #%11100101        ; latch, channel 11, noise, data 0101
   STA (ZP_VIA_PORTA,x)
 
   JSR strobe_we_bar
   JSR many_delays
- 
+
   LDA #%11110000        ; latch channel 11 volume 0000 (max)
   STA (ZP_VIA_PORTA,x)
 
@@ -220,9 +220,9 @@ sound_crash_loop:       ; increase attenuation from $0 to $f
   INY
   CPY #$10
   BNE sound_crash_loop
- 
+
   JSR sound_mute        ; make sure all channels are muted
-  JSR set_via2 
+  JSR set_via1
   PLY
   PLX
   PLA

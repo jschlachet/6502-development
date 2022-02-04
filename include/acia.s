@@ -32,6 +32,11 @@ init_acia_buffer_done:
   PLX
   RTS
 
+send_char:
+  STA ACIA_DATA
+  JSR delay_6551
+  RTS
+
 send_message_serial:
   PHA
   PHY
@@ -84,7 +89,7 @@ set_message_crlf:
   STA $09
   PLA
   RTS
-  
+
 set_message_bufferfull:
   PHA
   LDA #<message_bufferfull
@@ -169,7 +174,7 @@ key_escape:             ; $f0
   JMP irq_reset_end
 
 key_backspace:          ; $7f
-  LDA #$1               ; cursor left $10 
+  LDA #$1               ; cursor left $10
   JSR lcd_instruction_nowait
   LDA #$0
   JSR lcd_instruction
@@ -195,7 +200,7 @@ key_backtick:           ; $60
 
 
 key_enter:              ; $0d
-  ; 
+  ;
   PHA
   PHX
   PHY
@@ -215,14 +220,13 @@ key_enter_loop:
 key_enter_done:
   LDA #$00                ; add NULL to end of string
   STA INPUT_COMMAND,y        ;
- 
+
   JSR copy_args
   ; parse command
   JSR parse_command
   JSR init_acia_buffer
   JMP key_enter_exit
 key_enter_exit:           ; ready to exit
-  jsr set_via2
   jsr lcd_clear
   ;
   PLY
@@ -245,11 +249,11 @@ copy_args_loop:
   LDA INPUT_COMMAND,y      ; inspect char
   CMP #0                ; null
   BEQ copy_args_end     ; if null then shortcut to the end
- 
+
   INY
   CMP #' '              ; space
   BNE copy_args_loop    ; if no space yet then keep going
-  DEY                   ; decrement y once 
+  DEY                   ; decrement y once
   ; at the space now
   LDA #0                ;
   STA INPUT_COMMAND,Y      ; put null where the space was

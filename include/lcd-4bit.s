@@ -1,7 +1,7 @@
 ;
 ; LCD 1602 in 4-bit mode and connected solely to PORT A
 ;
-; Execellent notes: 
+; Execellent notes:
 ; http://web.alfredstate.edu/faculty/weimandn/lcd/lcd_initialization/lcd_initialization_index.html
 
 ; zero page pointers to hold addresses for the target via device.
@@ -11,7 +11,7 @@
   .include "acia.cfg"
 
 lcd_init:
-  PHA                   ; 
+  PHA                   ;
   LDX #0                ; will be using X=0 repeatedly
   LDA (ZP_VIA_DDRA,x)
   PHA
@@ -27,31 +27,31 @@ lcd_init:
   JSR delay_25ms
   JSR delay_25ms
   JSR delay_25ms
-  
+
   ; 2. Write 0x03 to LCD and wait 5 msecs
   LDA #$03
   STA (ZP_VIA_PORTA,x)
   JSR lcd_instruction_nowait
   JSR delay_5ms
- 
+
   ; 3. Write 0x03 to LCD and wait 200 usecs
   LDA #$03
   STA (ZP_VIA_PORTA,x)
   JSR lcd_instruction_nowait
   JSR delay_200us
- 
+
   ; 4. Write 0x03 to LCD and wait 160 usecs (or poll the busy flag)
   LDA #$03
   STA (ZP_VIA_PORTA,x)
   JSR lcd_instruction_nowait
   JSR delay_200us
-  
+
   ; 5. Write 0x02 to enable 4-bit mode.
   LDA #$02
   STA (ZP_VIA_PORTA,x)
   JSR lcd_instruction_nowait
   JSR delay_200us
-  
+
   ; -- at this point every command will take two nibble writes --
 
   ; 6. function set - Write set interface length
@@ -94,7 +94,8 @@ lcd_init:
   RTS
 
 lcd_clear:
-  PHA 
+  JSR set_via1
+  PHA
   PHX
 
   LDX #0                ;
@@ -173,8 +174,8 @@ delay_25ms:
 
 
 
-; for now we're just going to clobber 7. we should read, 
-; change the bits we need to modify, and then store.  
+; for now we're just going to clobber 7. we should read,
+; change the bits we need to modify, and then store.
 lcd_wait:
   PHA
   LDX #0
@@ -199,14 +200,14 @@ lcd_busy:
   LDA LED_STATUS
   ORA #(RW | E)
   STA (ZP_VIA_PORTA,x)
-  LDA (ZP_VIA_PORTA,x)  ; read port a 
+  LDA (ZP_VIA_PORTA,x)  ; read port a
   PLA                   ; pull first nibble since it should have D7 (busy)
 
   AND #%00001000        ; check D7 (shifted right by four)
   BNE lcd_busy
 
   LDA #%11111111        ; set all pins to output
-  STA (ZP_VIA_DDRA,x)   ; store new state to ddr 
+  STA (ZP_VIA_DDRA,x)   ; store new state to ddr
 
   ; reset port a to known state
   LDA LED_STATUS
@@ -238,17 +239,19 @@ led_on:
   ORA #%10000000        ; set bit 7
 led_preserved:
   RTS
-  
+
 
 print_char:
   PHX
   PHA                   ; push two copies onto stack
-  PHA                   ; 
+  PHA                   ;
+  JSR save_via
+  JSR set_via1
   JSR lcd_wait
 
   ; a contrains character to print
   LDX #0                ; needed for indirect addressing
-  
+
   LSR a                 ; logical shift right 4 bits
   LSR a
   LSR a
@@ -262,7 +265,7 @@ print_char:
   STA (ZP_VIA_PORTA,x)
   AND #CLEAR_E_RW_RS          ; clear control bits
   STA (ZP_VIA_PORTA,x)
-  
+
   PLA                   ; pull copy of A back from stack
 
   AND #%00001111        ; clear upper nibble
@@ -277,6 +280,7 @@ print_char:
 
   PLA                   ; restore a as we return
   PLX
+  JSR restore_via
   RTS
 
 

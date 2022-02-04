@@ -1,6 +1,6 @@
 ;
 ; VIA1 (right)
-;   Port A 
+;   Port A
 ;           A0-A7 --> SN76489
 ;   Port B
 ;           B0    --> SN76489 /WE
@@ -44,12 +44,12 @@ reset:
 
   jsr sound_mute
 
-  jsr set_via2
+  jsr set_via1
   jsr lcd_init
 
-  LDA #0
-  STA LED_STATUS
-  
+  STZ LED_STATUS        ;
+  STZ MODE              ; monitor state 0=NONE
+
   LDA #<INPUT_ARGS
   STA ZP_ARGS
   LDA #>INPUT_ARGS
@@ -61,7 +61,7 @@ reset:
   jsr send_message_serial
 
   jsr show_prompt
- 
+
   cli                   ; clear interrupt (enable)
   jsr loop
 
@@ -69,7 +69,16 @@ init_via:
   LDX #$0
   ; bring both ports of via to a known initial state
   ;
-  JSR set_via1          ; right
+  JSR set_via1          ; VIA1 - LCD, LED
+  ;
+  LDA #%11111111        ; all pins output
+  STA (ZP_VIA_DDRA,x)
+  STA (ZP_VIA_DDRB,x)
+  LDA #%00000000        ; all pins low
+  STA (ZP_VIA_PORTA,x)
+  STA (ZP_VIA_PORTB,x)
+
+  JSR set_via2          ; VIA2 - sn76489
   ;
   LDA #%00000000
   STA (ZP_VIA_PORTA,x)
@@ -80,15 +89,7 @@ init_via:
   STA (ZP_VIA_DDRA,x)
   LDA #%00000001 ; pin 0 is /WE (output so we can write it), 1 in RDY (input)
   STA (ZP_VIA_DDRB,x)
-  ;
-  JSR set_via2          ; left
-  ;
-  LDA #%11111111        ; all pins output
-  STA (ZP_VIA_DDRA,x)
-  STA (ZP_VIA_DDRB,x)
-  LDA #%00000000        ; all pins low
-  STA (ZP_VIA_PORTA,x)
-  STA (ZP_VIA_PORTB,x)
+
   RTS
 
 show_prompt:
@@ -111,6 +112,14 @@ irq:
   AND #$08 ; check for rx byte available
   BEQ irq_end
 
+  LDA MODE                            ; check monitor state
+  CMP #MODE_XMODEM_RECEIVE            ; if in xmodem then skip parsing
+  BNE irq_not_xmodem
+  LDA ACIA_DATA                       ; read character
+  JSR write_acia_buffer               ; stuff character into buffer
+  JMP irq_reset_end
+
+irq_not_xmodem:
   LDA ACIA_DATA
 
   CMP #$1b              ; escape
@@ -122,7 +131,7 @@ key_escape_continue:
   BNE key_backspace_continue
   JMP key_backspace
 key_backspace_continue:
-  
+
   CMP #$0d              ; enter
   BNE key_enter_continue
   JMP key_enter
@@ -132,7 +141,7 @@ key_enter_continue:
   BNE key_backtick_continue
   JMP key_backtick
 key_backtick_continue:
- 
+
   CMP #$03              ; Control-C
   BNE perform_reset_continue
   JMP perform_reset
@@ -175,6 +184,7 @@ irq_end:
   RTI
 
 
+  .include "xmodem-crc.s"
 
   .segment "VECTORS"
   .word nmi

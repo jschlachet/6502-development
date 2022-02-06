@@ -56,8 +56,8 @@ _XMODEM_S_ = 1
 ;
 ;
 ;7D00
-crc			=	$00 ; 38		; CRC lo byte  (two byte variable)
-crch		=	$7D ; 39		; CRC hi byte
+crc			=	$38 ; 38		; CRC lo byte  (two byte variable)
+crch		=	$39 ; 39		; CRC hi byte
 
 ptr			=	$3a		; data pointer (two byte variable)
 ptrh		=	$3b		;   "    "
@@ -138,10 +138,10 @@ StartCrc:
 		bcc	StartCrc	; resend "C"
 
 StartBlk:
-		; PHA
-		; LDA #'B'								; print debug
-		; JSR print_char					;
-		; PLA
+		PHA											; debug
+		LDA #'B'								; debug
+		JSR print_char					; debug
+		PLA											; debug
 		lda	#$FF								;
 		sta	retry2							; set loop counter for ~3 sec delay
 		lda	#$00								;
@@ -192,9 +192,9 @@ GoodBlk1:
 		brk						; bad 1's comp of block#
 GoodBlk2:
 		PHA											; debug
-		LDA #'Y'								;
-		JSR print_char					;
-		PLA											;
+		LDA #'Y'								; debug
+		JSR print_char					; debug
+		PLA											; debug
 		ldy	#$02		;
 CalcCrc:
 		lda	Rbuff,y		; calculate the CRC for the 128 bytes of data
@@ -211,18 +211,18 @@ CalcCrc:
 		beq	GoodCrc		; good CRC
 BadCrc:
 		jsr	Flush			; flush the input port
-		PHA						; debug
-		LDA #'N'			; debug
-		JSR print_char ; debug
-		PLA						; debug
+		PHA											; debug
+		LDA #'N'								; debug
+		JSR print_char 					; debug
+		PLA											; debug
 		lda	#NAK			;
 		jsr	Put_Chr		; send NAK to resend block
 		jmp	StartBlk	; start over, get the block again
 GoodCrc:
-		PHA						; debug
-		LDA #'Y'			; debug
-		JSR print_char ; debug
-		PLA						; debug
+		PHA											; debug
+		LDA #'Y'								; debug
+		JSR print_char 					; debug
+		PLA											; debug
 
 		ldx	#$02			;
 		lda	blkno			; get the block number

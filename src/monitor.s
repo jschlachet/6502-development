@@ -49,6 +49,7 @@ reset:
 
   STZ LED_STATUS        ;
   STZ MODE              ; monitor state 0=NONE
+  STZ LCDPOS            ;
 
   LDA #<INPUT_ARGS
   STA ZP_ARGS

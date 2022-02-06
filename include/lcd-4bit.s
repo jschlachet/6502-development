@@ -242,6 +242,37 @@ led_preserved:
 
 
 print_char:
+  ; wrapper for original print_char. use current lcd positon
+  ; to wrap if at the end of line 1 (16) or end of line 2 (56)
+  ; assuming 16x2 lcd which is internally 40x2
+  PHA
+  LDA LCDPOS
+  CMP #$10 ; 16 (end of 1st line)
+  BEQ advance_24
+  LDA LCDPOS
+  CMP #$38 ; 56 (end of 2nd line)
+  BEQ reset_pos
+  JMP now_print_char
+advance_24:
+  PHX
+  LDX #$18
+  LDA #' '
+advance_25_loop:
+  JSR print_char2
+  DEX
+  BNE advance_25_loop
+  PLX
+  JMP now_print_char
+reset_pos:
+  JSR lcd_clear
+  STZ LCDPOS
+now_print_char:
+  PLA
+  JSR print_char2
+  RTS
+
+
+print_char2:
   PHX
   PHA                   ; push two copies onto stack
   PHA                   ;
@@ -281,6 +312,7 @@ print_char:
   PLA                   ; restore a as we return
   PLX
   JSR restore_via
+  INC LCDPOS            ; increment lcd position
   RTS
 
 

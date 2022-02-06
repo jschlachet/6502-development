@@ -176,12 +176,14 @@ key_escape:             ; $f0
 key_backspace:          ; $7f
   LDA #$1               ; cursor left $10
   JSR lcd_instruction_nowait
+  DEC LCDPOS
   LDA #$0
   JSR lcd_instruction
   LDA #$20              ; print space
   JSR print_char
   LDA #$1               ; cursor left $10
   JSR lcd_instruction_nowait
+  DEC LCDPOS
   LDA #$0
   JSR lcd_instruction
   JSR acia_buffer_diff  ; check pointers
@@ -190,6 +192,15 @@ key_backspace:          ; $7f
   DEC ACIA_WR_PTR       ; decrement write pointer by one
   JSR send_backspace_serial
 key_backspace_end:
+;   PHA
+;   LDA LCDPOS
+;   CMP #$28 ; first position of line 2
+;   BNE key_backspace_return
+;   SBC #$18
+;   STA LCDPOS
+; key_backspace_return:
+;   PLA
+;   DEC LCDPOS
   JMP irq_reset_end
 
 key_backtick:           ; $60

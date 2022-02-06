@@ -2,15 +2,16 @@
 _COMMAND_S_ = 1
 
 ;
-COMMAND_HELP:     .asciiz "help"
-COMMAND_VERSION:  .asciiz "version"
-COMMAND_LED:      .asciiz "led"
-COMMAND_STATUS:   .asciiz "status"
 COMMAND_BEEP:     .asciiz "beep"
 COMMAND_CRASH:    .asciiz "crash"
-COMMAND_READ:     .asciiz "read"
-COMMAND_WRITE:    .asciiz "write"
 COMMAND_DUMP:     .asciiz "dump"
+COMMAND_HELP:     .asciiz "help"
+COMMAND_LED:      .asciiz "led"
+COMMAND_LOAD:     .asciiz "load"
+COMMAND_READ:     .asciiz "read"
+COMMAND_STATUS:   .asciiz "status"
+COMMAND_WRITE:    .asciiz "write"
+COMMAND_VERSION:  .asciiz "version"
 
 NULL    = $00
 EQUAL   = $00
@@ -18,8 +19,12 @@ LT      = $ff
 GT      = $01
 
 
-  .include "zeropage.cfg"
+MODEM_RECEIVE_FAILED    = $00
+MODEM_RECEIVE_SUCCESS   = $01
+MODEM_RECEIVE_CANCELLED = $02
 
+  .include "zeropage.cfg"
+  .include "xmodem.s"
   .include "sn76489.s"
 
 ; ref: http://prosepoetrycode.potterpcs.net/tag/6502/
@@ -34,7 +39,7 @@ strcmp:
   PHY
   LDY #$00
 strcmp_load:
-  LDA (ZP_COMMAND), Y   ; command we're comparing with 
+  LDA (ZP_COMMAND), Y   ; command we're comparing with
   CMP INPUT_COMMAND, Y  ; user input
   BNE strcmp_lesser
   INY
@@ -59,7 +64,7 @@ parse_command:
   PHA
   PHX
   PHY
- 
+
   ; help
   LDA #<COMMAND_HELP
   STA ZP_COMMAND
@@ -70,7 +75,7 @@ parse_command:
   BNE parse_command_help_continue
   JMP parse_command_help
 parse_command_help_continue:
-  
+
   ; version
   LDA #<COMMAND_VERSION
   STA ZP_COMMAND
@@ -159,6 +164,17 @@ parse_command_write_continue:
   JMP parse_command_dump
 parse_command_dump_continue:
 
+  ; load
+  LDA #<COMMAND_LOAD
+  STA ZP_COMMAND
+  LDA #>COMMAND_LOAD
+  STA ZP_COMMAND+1
+  JSR strcmp
+  CMP #EQUAL
+  BNE parse_command_load_continue
+  JMP parse_command_load
+parse_command_load_continue:
+
   ; default - unknown
   LDA #<message_unknown
   STA ZP_MESSAGE
@@ -193,13 +209,13 @@ parse_command_version:
 
 
 ; assuming via2 is active (left via)
-parse_command_led:      ; toggle via 2, port b, pin 7 
+parse_command_led:      ; toggle via 2, port b, pin 7
   LDX #0
 
   LDA (ZP_VIA_DDRA,x)   ; read ddr for port b and save on stack
   PHA
   ORA #%10000000        ; set pin 7 to 1  (output)
-  STA (ZP_VIA_DDRA,x)   ; 
+  STA (ZP_VIA_DDRA,x)   ;
 
   LDA (ZP_VIA_PORTA,x)
   EOR #%10000000        ; reverse bit 7
@@ -255,8 +271,8 @@ parse_command_dump:
   STA ZP_MESSAGE+1
   JSR send_message_serial
   ;
-dump_address_loop:  
-  PHX   
+dump_address_loop:
+  PHX
   JSR print_memory_line
   PLX
   INX
@@ -268,10 +284,10 @@ dump_address_loop:
 print_memory_line:
   PHY
 
-  LDA ZP_POINTER+1       
-  JSR print_byte         
-  LDA ZP_POINTER        
-  JSR print_byte        
+  LDA ZP_POINTER+1
+  JSR print_byte
+  LDA ZP_POINTER
+  JSR print_byte
   ;
   LDA #':'
   STA ACIA_DATA
@@ -305,6 +321,23 @@ print_memory_line_loop:
 
   PLY
   RTS
+
+
+parse_command_load:
+  ;SEI						; set interupt disable                                     JSS
+  JSR set_message_crlf  ; go to next line
+  JSR send_message_serial
+  LDA #MODE_XMODEM_RECEIVE
+  STA MODE
+  ;SEI
+  JSR XModem
+  ;CMP #(MODEM_RECEIVE_FAILED)
+  ;BEQ parse_command_load
+  STZ MODE
+  ;CLI
+  ;RTS
+  JMP option_done
+
 
 ;
 ; read 1st argument (address) and place contents into ZP_POINTER
@@ -349,7 +382,7 @@ parse_command_read:
   LDA #>message_read
   STA ZP_MESSAGE+1
   JSR send_message_serial
-  
+
   JSR parse_args_1_nnnn
 
   JSR print_memory_line
@@ -372,7 +405,7 @@ ascii_to_byte_low:
   SBC #$1f              ; subtract another 31, moving 'a' to $a
 ascii_to_byte_low_done:
   TAX
-  RTS 
+  RTS
 
 
 ; input A - high nibble character
@@ -422,7 +455,7 @@ option_done:
   RTS
 
 
-; reminder -- 
+; reminder --
 ; ORA #%01000000 - set bit 6 to 1
 ; AND #%10111111 - set bit 6 to 0
 ; EOR #%01000000 - reverse bit 6
